@@ -1,0 +1,31 @@
+     GstStateChangeReturn stateChanged = gst_element_set_state(ec_pipeline, GST_STATE_PLAYING);
+    if (stateChanged == GST_STATE_CHANGE_FAILURE) {
+        printf ("Unable to set the pipeline to the playing state.\n");
+    }
+  1. 通过caps来发送数据，但是通过gst-inspect-1.0没有发现codec_data (element properties),但程序也没有报错.
+   GstBuffer *buf = gst_buffer_new_wrapped((gpointer)((data)),(gsize)len);
+    GstCaps *caps = gst_caps_new_simple( "video/x-h264",
+			"codec_data", GST_TYPE_BUFFER, buf,
+			"stream-format", G_TYPE_STRING, "byte-stream",
+			"framerate", GST_TYPE_FRACTION, 60, 1,
+			"width", G_TYPE_INT, 800,
+			"height", G_TYPE_INT, 480,
+			NULL);
+  2.通过g_signal_emit_by_name发送数据
+    GstBuffer *buf = gst_buffer_new_wrapped((gpointer)((data)),(gsize)len);
+    g_signal_emit_by_name (ec_appsrc, "push-buffer", buf, &ret);
+    gst_buffer_unref(buf);
+   3.通过gst_app_src_push_buffer发送数据
+       GstBuffer *buf = gst_buffer_new_wrapped((gpointer)((data)),(gsize)len);
+    GstFlowReturn ret = gst_app_src_push_buffer ((GstAppSrc *) ec_appsrc, buf);
+    if (GST_FLOW_OK != ret) {
+    printf ("gst_app_src_push_buffer returned %d \n", ret);
+
+    }
+    else 
+    {
+       printf("--------------------------send ok------------\n");
+    }
+	
+	总结： 通过上述三种方式往appsrc里面塞数据，pipeline  current_state 是3， appsrc current_state 是4，屏幕无法渲染。
+	    然而切换到filesrc，pipeline  current_state 是2， appsrc current_state 是4，屏幕可以渲染。
